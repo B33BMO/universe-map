@@ -112,7 +112,7 @@ function StarField({ stars, onStarClick }) {
         <pointsMaterial
           vertexColors
           size={5}
-          sizeAttenuation={false}
+          sizeAttenuation={true}
           opacity={1}
           transparent
           map={sprite.current}
