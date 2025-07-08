@@ -6,29 +6,39 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import Papa from "papaparse";
 import * as THREE from "three";
 
-// ---- Generate a Hubble-style round/glow star texture ----
+// --- BETTER STAR TEXTURE (sharp core + subtle glow) ---
 function createStarTexture() {
   const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
-  // Draw a sharp, glowing star point
+
+  // --- Sharp, bright core (actual "star" part) ---
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 10, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,1)";
+  ctx.shadowColor = "rgba(255,255,255,1)";
+  ctx.shadowBlur = 24;
+  ctx.fill();
+  ctx.restore();
+
+  // --- Fast-fading blue-white glow ---
   const gradient = ctx.createRadialGradient(
-    size / 2, size / 2, 0,
+    size / 2, size / 2, size / 18,
     size / 2, size / 2, size / 2
   );
-  gradient.addColorStop(0.0, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.08, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.18, "rgba(255,255,220,0.9)");
-  gradient.addColorStop(0.26, "rgba(180,180,255,0.55)");
-  gradient.addColorStop(0.5, "rgba(180,200,255,0.10)");
-  gradient.addColorStop(1.0, "rgba(180,200,255,0)");
-  ctx.fillStyle = gradient;
+  gradient.addColorStop(0, "rgba(255,255,255,0.8)");
+  gradient.addColorStop(0.2, "rgba(200,220,255,0.25)");
+  gradient.addColorStop(1, "rgba(30,50,150,0)");
   ctx.beginPath();
   ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+  ctx.fillStyle = gradient;
   ctx.fill();
 
-  return new THREE.Texture(canvas).clone();
+  const tex = new THREE.Texture(canvas);
+  tex.needsUpdate = true;
+  return tex;
 }
 
 // ---- StarField Component ----
@@ -37,16 +47,16 @@ function StarField({ stars, onStarClick }) {
   const { camera, gl, scene } = useThree();
   const sprite = useRef();
 
-  // One sprite, initialized once!
+  // Only generate ONCE
   if (!sprite.current) sprite.current = createStarTexture();
 
-  // Add fog to the scene (if you want)
+  // Add fog
   useEffect(() => {
     scene.fog = new THREE.Fog("black", 2000, 6000);
     return () => { scene.fog = null; };
   }, [scene]);
 
-  // Picking: click to select
+  // Click-to-select
   useEffect(() => {
     function handleClick(event) {
       const { left, top, width, height } = gl.domElement.getBoundingClientRect();
@@ -111,20 +121,22 @@ function StarField({ stars, onStarClick }) {
         </bufferGeometry>
         <pointsMaterial
           vertexColors
-          size={5}
+          size={9} // Try 5, 7, 9 -- whatever feels most "stellar"
           sizeAttenuation={true}
           opacity={1}
           transparent
           map={sprite.current}
-          alphaTest={0.05}
+          alphaTest={0.02}
           fog={true}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
       </points>
       <EffectComposer>
         <Bloom
-          intensity={2.5}
-          luminanceThreshold={0.1}
-          luminanceSmoothing={0.1}
+          intensity={2.2}
+          luminanceThreshold={0.07}
+          luminanceSmoothing={0.08}
         />
       </EffectComposer>
     </>
@@ -219,7 +231,7 @@ export default function Home() {
           enablePan
           enableZoom
           enableRotate
-          minDistance={0.1}
+          minDistance={0.01}
           maxDistance={100000}
         />
       </Canvas>
