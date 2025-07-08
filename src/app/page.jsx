@@ -219,7 +219,7 @@ export default function Home() {
           enablePan
           enableZoom
           enableRotate
-          minDistance={100}
+          minDistance={0.1}
           maxDistance={100000}
         />
       </Canvas>
